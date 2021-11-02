@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 )
@@ -11,16 +12,21 @@ import (
 func main() {
 	//flags initialization
 	path := flag.String("path", "problems.csv", "path to your questions")
-	timeLimit := flag.Int("timeLimit", 60, "timer for quiz")
+	timeLimit := flag.Int("timeLimit", 30, "timer for quiz")
+	shuffle := flag.Bool("shuffle", false, "shuffle the question list")
 	flag.Parse()
 
 	//start the quiz
-	startQuiz(*path, *timeLimit)
+	startQuiz(*path, *timeLimit, *shuffle)
 }
 
-func startQuiz(path string, timeLimit int) {
+func startQuiz(path string, timeLimit int, shuffle bool) {
 	//get questions from the csv file
 	qa := fetchQuestions(path)
+	if shuffle {
+		rand.Seed(time.Now().UnixNano())
+		rand.Shuffle(len(qa), func(i, j int) { qa[i], qa[j] = qa[j], qa[i] })
+	}
 
 	//start a timer
 	timer := time.NewTimer(time.Duration(timeLimit) * time.Second)
