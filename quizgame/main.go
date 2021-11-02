@@ -5,40 +5,58 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 )
 
-var path *string
-var time *int
-
-func init() {
+func main() {
 	//flags initialization
-	path = flag.String("path", "problems.csv", "path to your questions")
-	time = flag.Int("time", 60, "timer for quiz")
+	path := flag.String("path", "problems.csv", "path to your questions")
+	timeLimit := flag.Int("timeLimit", 60, "timer for quiz")
 	flag.Parse()
 
-}
-
-func main() {
 	//start the quiz
-	startQuiz(*path, *time)
+	startQuiz(*path, *timeLimit)
 }
 
-func startQuiz(path string, time int) {
+func startQuiz(path string, timeLimit int) {
+	//get questions from the csv file
 	qa := fetchQuestions(path)
 
-	//loop and ask all the questions
-	correct := 0 //store the number of correct answer
-	var answer string
+	//start a timer
+	timer := time.NewTimer(time.Duration(timeLimit) * time.Second)
+
+	correct := 0 //store correct answers
+
+questionLoop:
 	for n, line := range qa {
+		//ask question
 		fmt.Printf("Question %v: %v \nAnswer: ", n+1, line[0])
-		fmt.Scanln(&answer)
-		if answer == line[1] {
-			correct++
+
+		//ask for answer
+		answerCh := make(chan string)
+		go func() {
+			var answer string
+			fmt.Scanln(&answer)
+			answerCh <- answer
+		}()
+
+		//select case for if time is over before the question is answered
+		select {
+		case <-timer.C:
+			fmt.Println("\nTime is over.")
+			break questionLoop
+		case answer := <-answerCh:
+			if answer == line[1] {
+				correct++
+			}
 		}
 	}
+
+	//print results
 	fmt.Printf("Correct Answers: %v || Total Questions: %v", correct, len(qa))
 }
 
+//fetchQuestions parses the csv file
 func fetchQuestions(path string) [][]string {
 	//open problems file for questions and answers
 	csvFile, err := os.Open(path)
@@ -55,6 +73,7 @@ func fetchQuestions(path string) [][]string {
 	return csvLines
 }
 
+//quit exits from the program after showing given message
 func quit(msg error) {
 	fmt.Printf("ERROR %v", msg)
 	os.Exit(1)
