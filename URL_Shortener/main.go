@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v2"
@@ -21,17 +23,23 @@ type urlPath struct {
 
 var pathToUrls = make(map[string]string)
 
-//yaml contains an array of the keyword and url.
-var yamlList string = `
-- path: dogs
-  url: https://www.google.com/search?q=dogs&source=lnms&tbm=isch&sa=X&ved=2ahUKEwi5kJu0pfzzAhVtzDgGHXuLAQwQ_AUoAXoECAEQAw&biw=1536&bih=746&dpr=1.25
-- path: rickroll
-  url: https://www.youtube.com/watch?v=dQw4w9WgXcQ&ab_channel=RickAstley
-`
+// //yaml contains an array of the keyword and url.
+// var yamlList string = `
+// - path: dogs
+//   url: https://www.google.com/search?q=dogs&source=lnms&tbm=isch&sa=X&ved=2ahUKEwi5kJu0pfzzAhVtzDgGHXuLAQwQ_AUoAXoECAEQAw&biw=1536&bih=746&dpr=1.25
+// - path: rickroll
+//   url: https://www.youtube.com/watch?v=dQw4w9WgXcQ&ab_channel=RickAstley
+// `
 
 func main() {
-	parseYAML()
-	fmt.Println(pathToUrls)
+	//yaml flag to take in yaml files.
+	filePath := flag.String("yaml", "list.yaml", "path to your yaml list of urls and keyword")
+	flag.Parse()
+
+	//fetches list of urls from given file to a map
+	getList(filePath)
+
+	//starts the url shortener server
 	startServer(&pathToUrls)
 }
 
@@ -56,11 +64,15 @@ func redirect(c *gin.Context) {
 }
 
 //parses yaml string to a map[string]string
-func parseYAML() {
+func getList(filePath *string) {
+	yamlList, err := os.ReadFile(*filePath)
+	if err != nil {
+		fmt.Println("ERROR reading file ", err)
+		os.Exit(1)
+	}
 	//parse yaml string to []struct
 	var data []urlPath
-	yamlByte := []byte(yamlList)
-	yaml.Unmarshal(yamlByte, &data)
+	yaml.Unmarshal(yamlList, &data)
 
 	//convert yaml []struct to map[string]string
 	for _, v := range data {
