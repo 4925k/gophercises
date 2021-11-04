@@ -33,11 +33,22 @@ var pathToUrls = make(map[string]string)
 
 func main() {
 	//yaml flag to take in yaml files.
-	filePath := flag.String("yaml", "list.yaml", "path to your yaml list of urls and keyword")
+	yamlFile := flag.String("yaml", "", "path to your yaml list of urls and keyword")
+	jsonFile := flag.String("json", "", "path to your json list of urls and keyword")
 	flag.Parse()
 
+	fmt.Println(*yamlFile, *jsonFile)
 	//fetches list of urls from given file to a map
-	getList(filePath)
+	if *yamlFile != "" {
+		data := readFile(*yamlFile)
+		parseYAML(data)
+	} else if *jsonFile != "" {
+		data := readFile(*jsonFile)
+		parseJSON(data)
+	} else {
+		fmt.Println("ERROR no file input given.")
+		os.Exit(1)
+	}
 
 	//starts the url shortener server
 	startServer(&pathToUrls)
@@ -49,6 +60,11 @@ func startServer(path *map[string]string) {
 	router.GET("/", mainpage)
 	router.GET("/:path", redirect)
 	router.Run()
+}
+
+//mainpage of the server.
+func mainpage(c *gin.Context) {
+	c.String(http.StatusOK, "try adding /rickroll to the url.\nOther keyword includes dog.")
 }
 
 //redirects the user to given urls if the keyword matches
@@ -63,25 +79,36 @@ func redirect(c *gin.Context) {
 	})
 }
 
-//parses yaml string to a map[string]string
-func getList(filePath *string) {
-	yamlList, err := os.ReadFile(*filePath)
+//parses yaml contents to a map[string]string
+func parseYAML(listdata []byte) {
+	//unmarshal file contents to []urlPath
+	var data []urlPath
+	yaml.Unmarshal(listdata, &data)
+
+	//convert struct to map[string]string
+	for _, v := range data {
+		pathToUrls[v.Path] = v.Url
+	}
+}
+
+//parses json contents to map[string]string
+func parseJSON(listdata []byte) {
+	//unmarshal file contents into []urlPath
+	var data []urlPath
+	yaml.Unmarshal(listdata, data)
+
+	//convert struct to map[string]string
+	for _, v := range data {
+		pathToUrls[v.Path] = v.Url
+	}
+}
+
+//read []byte contents of a file
+func readFile(filepath string) []byte {
+	data, err := os.ReadFile(filepath)
 	if err != nil {
 		fmt.Println("ERROR reading file ", err)
 		os.Exit(1)
 	}
-	//parse yaml string to []struct
-	var data []urlPath
-	yaml.Unmarshal(yamlList, &data)
-
-	//convert yaml []struct to map[string]string
-	for _, v := range data {
-		pathToUrls[v.Path] = v.Url
-	}
-
-}
-
-//mainpage of the server.
-func mainpage(c *gin.Context) {
-	c.String(http.StatusOK, "try adding /rickroll to the url.\nOther keyword includes dog.")
+	return data
 }
