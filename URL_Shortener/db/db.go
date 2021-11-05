@@ -1,8 +1,7 @@
-package main
+package db
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -15,40 +14,39 @@ import (
 const dbLocation string = "urlshortener.db"
 const dbName string = "urlDB"
 
-func main() {
-	//db, err := setupDB()
-	db, err := db()
-	if err != nil {
-		fmt.Printf("could not setup db, %v", err)
-	}
-	// insertURL(db, "rickroll", "https://www.youtube.com/watch?v=dQw4w9WgXcQ&ab_channel=RickAstley")
-	// insertURL(db, "valorant", "https://www.youtube.com/watch?v=FUoqAn5T4h4&ab_channel=VALORANT")
+// func main() {
+// 	//db, err := setupDB()
+// 	db, err := db()
+// 	if err != nil {
+// 		fmt.Printf("could not setup db, %v", err)
+// 	}
+// insertURL(db, "rickroll", "https://www.youtube.com/watch?v=dQw4w9WgXcQ&ab_channel=RickAstley")
+// insertURL(db, "valorant", "https://www.youtube.com/watch?v=FUoqAn5T4h4&ab_channel=VALORANT")
 
-	view(db)
-	s := string(viewKey(db, "rickrolasdl"))
-	if s != "" {
-		fmt.Println(s)
-	} else {
-		fmt.Println("No url found")
-	}
+// 	view(db)
+// 	s := string(viewKey(db, "rickroll"))
+// 	if s != "" {
+// 		fmt.Println(s)
+// 	} else {
+// 		fmt.Println("No url found")
+// 	}
 
-	db.Close()
-}
+// 	db.Close()
+// }
 
-func db() (*bolt.DB, error) {
+func DB() (*bolt.DB, error) {
 	db, err := bolt.Open(dbLocation, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return nil, fmt.Errorf("could not create connection: %v", err)
 	}
-	fmt.Println("connected to db")
 	return db, err
 }
 
-func setupDB() (*bolt.DB, error) {
+//setupDB sets up a db if it does not exist
+func SetupDB() error {
 	db, err := bolt.Open(dbLocation, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return fmt.Errorf("could not open DB: %v", err)
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(dbName))
@@ -58,13 +56,16 @@ func setupDB() (*bolt.DB, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not set up bucket, %v", err)
+		return fmt.Errorf("could not set up bucket, %v", err)
 	}
+	InsertURL(db, "rickroll", "https://www.youtube.com/watch?v=dQw4w9WgXcQ&ab_channel=RickAstley")
 	fmt.Println("DB setup complete")
-	return db, nil
+	db.Close()
+	return nil
 }
 
-func insertURL(db *bolt.DB, path, url string) error {
+//insertURL adds a new path and url in the database
+func InsertURL(db *bolt.DB, path, url string) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		err := tx.Bucket([]byte(dbName)).Put([]byte(path), []byte(url))
 		if err != nil {
@@ -76,7 +77,8 @@ func insertURL(db *bolt.DB, path, url string) error {
 	return err
 }
 
-func view(db *bolt.DB) error {
+//view prints all the paths and urls stored in the db
+func View(db *bolt.DB) error {
 	err := db.View(func(tx *bolt.Tx) error {
 		data := tx.Bucket([]byte(dbName))
 		data.ForEach(func(k, v []byte) error {
@@ -88,7 +90,8 @@ func view(db *bolt.DB) error {
 	return err
 }
 
-func viewKey(db *bolt.DB, key string) []byte {
+//viewKey returns the url stores on given key
+func ViewKey(db *bolt.DB, key string) []byte {
 	var url []byte
 	db.View(func(tx *bolt.Tx) error {
 		data := tx.Bucket([]byte(dbName))
