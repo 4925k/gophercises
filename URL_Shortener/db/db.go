@@ -34,8 +34,8 @@ const dbName string = "urlDB"
 // 	db.Close()
 // }
 
-func DB() (*bolt.DB, error) {
-	db, err := bolt.Open(dbLocation, 0600, &bolt.Options{Timeout: 5 * time.Second})
+func DB(dbFile string) (*bolt.DB, error) {
+	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return nil, fmt.Errorf("could not create connection: %v", err)
 	}

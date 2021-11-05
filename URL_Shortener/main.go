@@ -36,7 +36,7 @@ func redirect(c *gin.Context) {
 	// }
 
 	//connect to database
-	conn, err := db.DB()
+	conn, err := db.DB("./db/urlShortener.db")
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 			"message": "databse error",
