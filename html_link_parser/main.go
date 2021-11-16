@@ -8,9 +8,7 @@ import (
 
 var exampleHtml = `<html>
 <body>
-  <h1>Hello!</h1>
-  <a href="/other-page">A link to another page</a>
-  <a href="/another-page">A link to other page</a>
+  <a href="/dog-cat">dog cat <!-- commented text SHOULD NOT be included! --></a>
 </body>
 </html>
 `
