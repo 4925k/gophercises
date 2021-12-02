@@ -1,14 +1,27 @@
 package main
 
 import (
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"siteMapBuilder/parseWebPage"
 	"strings"
 )
+
+const xmlns = "http://www.sitemaps.org/schemas/sitemap/0.9"
+
+type loc struct {
+	Value string `xml:"loc"`
+}
+
+type urlset struct {
+	Urls  []loc  `xml:"url`
+	Xmlns string `xml:"xmlns,attr"`
+}
 
 func main() {
 	// set up flags
@@ -17,9 +30,19 @@ func main() {
 	flag.Parse()
 
 	pages := bfs(*urlFlag, *depth)
-	//pages := get(*urlFlag)
-	for _, l := range pages {
-		fmt.Println(l)
+	// parse pages as xml
+	xmlPages := urlset{
+		Xmlns: xmlns,
+	}
+	for _, page := range pages {
+		xmlPages.Urls = append(xmlPages.Urls, loc{page})
+	}
+
+	fmt.Print(xml.Header)
+	enc := xml.NewEncoder(os.Stdout)
+	enc.Indent("", "  ")
+	if err := enc.Encode(xmlPages); err != nil {
+		panic(err)
 	}
 
 }
